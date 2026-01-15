@@ -4,7 +4,7 @@ set -e
 # This script is intended to be the ENTRYPOINT or executed before the app
 # It fetches secrets from Vault and exports them as env vars
 
-export VAULT_ADDR='http://vault:8200' # Inside docker network, vault host is 'vault'
+export VAULT_ADDR="${VAULT_ADDR:-http://127.0.0.1:8200}"
 # In a real scenario, we would use AppRole or Kubernetes Auth. 
 # For this demo, we pass the token via env var or use a specialized agent.
 # We'll assume VAULT_TOKEN is passed to the container for this simple demo,
