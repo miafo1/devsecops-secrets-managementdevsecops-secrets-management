@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Starting Docker fix..."
+echo "Starting Docker fix (Force Reload Mode)..."
 
 # 1. Install jq if missing
 if ! command -v jq &> /dev/null; then
@@ -10,23 +10,13 @@ if ! command -v jq &> /dev/null; then
 fi
 
 # Ensure /etc/docker directory exists
-if [ ! -d "/etc/docker" ]; then
-    echo "Creating /etc/docker directory..."
-    sudo mkdir -p /etc/docker
-fi
+sudo mkdir -p /etc/docker
 
 # 2. Configure daemon.json
-echo "Configuring /etc/docker/daemon.json..."
+echo "Ensuring userland-proxy is disabled in /etc/docker/daemon.json..."
 if [ -f /etc/docker/daemon.json ]; then
-    if grep -q "userland-proxy" /etc/docker/daemon.json; then
-        echo "Configuration already present. Overwriting..."
-        sudo jq '. + {"userland-proxy": false}' /etc/docker/daemon.json | sudo tee /etc/docker/daemon.json.tmp
-        sudo mv /etc/docker/daemon.json.tmp /etc/docker/daemon.json
-    else
-        echo "Adding userland-proxy: false..."
-        sudo jq '. + {"userland-proxy": false}' /etc/docker/daemon.json | sudo tee /etc/docker/daemon.json.tmp
-        sudo mv /etc/docker/daemon.json.tmp /etc/docker/daemon.json
-    fi
+    sudo jq '. + {"userland-proxy": false}' /etc/docker/daemon.json | sudo tee /etc/docker/daemon.json.tmp
+    sudo mv /etc/docker/daemon.json.tmp /etc/docker/daemon.json
 else
     echo '{"userland-proxy": false}' | sudo tee /etc/docker/daemon.json
 fi
@@ -35,27 +25,24 @@ fi
 echo "Current daemon.json content:"
 sudo cat /etc/docker/daemon.json
 
-# 4. Restart Docker
-echo "Attempting to restart/reload Docker..."
-
-if command -v systemctl &> /dev/null; then
-    echo "Trying systemctl..."
-    sudo systemctl reload docker || sudo systemctl restart docker && echo "Success via systemctl" && exit 0
-fi
-
-if [ -f /etc/init.d/docker ]; then
-    echo "Trying /etc/init.d/docker..."
-    sudo /etc/init.d/docker restart && echo "Success via init.d" && exit 0
-fi
-
-echo "Trying to reload dockerd config via SIGHUP..."
+# 4. Force Reload dockerd
+echo "Forcing configuration reload via SIGHUP to dockerd..."
 PID=$(pidof dockerd)
+
+if [ -z "$PID" ]; then
+    echo "dockerd process not found! Attempting to find via ps..."
+    PID=$(ps aux | grep dockerd | grep -v grep | awk '{print $2}' | head -n 1)
+fi
+
 if [ ! -z "$PID" ]; then
+    echo "Found dockerd PID: $PID. Sending SIGHUP..."
     sudo kill -SIGHUP $PID
-    echo "Sent SIGHUP to dockerd (PID $PID). Configuration should be reloaded."
+    echo "Signal sent. Waiting 5 seconds for reload..."
+    sleep 5
 else
-    echo "Could not find dockerd process. Is Docker running?"
+    echo "ERROR: Could not find dockerd process to reload."
+    echo "Please try: 'sudo killall dockerd' manually if this fails."
     exit 1
 fi
 
-echo "Docker fix applied. Please wait a few seconds and try 'docker-compose up'."
+echo "Docker fix applied. Please try running 'docker-compose up' now."
