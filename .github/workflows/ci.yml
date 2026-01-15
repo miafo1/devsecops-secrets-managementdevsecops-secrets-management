@@ -1,0 +1,49 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Required for TruffleHog
+
+      - name: TruffleHog Secrets Scan
+        uses: trufflesecurity/trufflehog@v3.63.0
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: ${{ github.head_ref || github.ref_name }}
+          extra_args: --debug --only-verified
+
+      - name: Checkov IaC Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: aws/
+          framework: terraform
+          soft_fail: true # Set to false to break build on failure
+
+  build-and-test:
+    needs: security-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./app
+          push: false
+          tags: devsecops-app:latest
+
+      # In a real pipeline, we would start the services (Vault) and run integration tests here.
+      # For this demo, we verify the Docker build succeeds.
