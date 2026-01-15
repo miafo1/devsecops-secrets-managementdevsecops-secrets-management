@@ -67,6 +67,13 @@ graph TD
 
 ## Setup & Usage
 
+### 0. Prerequisites (if running in a fresh Codespace)
+If `terraform` or `jq` are missing, run:
+```bash
+chmod +x scripts/install_tools.sh
+./scripts/install_tools.sh
+```
+
 ### 1. Infrastructure Setup (AWS)
 ```bash
 cd aws
