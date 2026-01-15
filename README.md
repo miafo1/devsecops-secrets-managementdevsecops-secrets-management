@@ -22,8 +22,8 @@ A centralized, automated, and strictly governed system where:
 graph TD
     subgraph "Codespaces / Dev Environment"
         Dev[Developer] -->|Git Push| GitHub[GitHub Repo]
-        Vault[HashiCorp Vault (Docker)]
-        App[Flask App Container]
+        Vault["HashiCorp Vault (Docker)"]
+        App["Flask App Container"]
     end
 
     subgraph "CI/CD (GitHub Actions)"
@@ -34,7 +34,7 @@ graph TD
 
     subgraph "AWS Cloud"
         ASM[AWS Secrets Manager]
-        IAM[AWS IAM (Least Privilege)]
+        IAM["AWS IAM (Least Privilege)"]
     end
 
     Dev -- "Configures" --> Terraform
