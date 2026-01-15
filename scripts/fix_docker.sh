@@ -9,6 +9,12 @@ if ! command -v jq &> /dev/null; then
     sudo apt-get update && sudo apt-get install -y jq
 fi
 
+# Ensure /etc/docker directory exists
+if [ ! -d "/etc/docker" ]; then
+    echo "Creating /etc/docker directory..."
+    sudo mkdir -p /etc/docker
+fi
+
 # 2. Configure daemon.json
 echo "Configuring /etc/docker/daemon.json..."
 if [ -f /etc/docker/daemon.json ]; then
@@ -31,12 +37,7 @@ fi
 echo "Current daemon.json content:"
 sudo cat /etc/docker/daemon.json
 
-# 4. Attempt to find and link docker-proxy (fallback)
-# Some distros put it in /usr/libexec/docker/cli-plugins or other places, 
-# but usually it's just missing in this specific image.
-# We'll skip searching for now as disabling it is the standard fix.
-
-# 5. Restart Docker
+# 4. Restart Docker
 echo "Restarting Docker service..."
 sudo service docker restart
 # Wait a moment
